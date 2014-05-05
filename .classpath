@@ -16,6 +16,8 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/HDF"/>
+	<classpathentry kind="lib" path="lib/jarh5obj.jar"/>
+	<classpathentry kind="lib" path="lib/jarhdf5-2.10.0.jar"/>
+	<classpathentry kind="lib" path="lib/jarhdfobj.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
