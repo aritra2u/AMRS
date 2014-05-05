@@ -4,6 +4,7 @@
 package in.ac.iitk.cse.mti.aritra.amrs;
 
 import in.ac.iitk.cse.mti.aritra.amrs.datamodels.Trie;
+import in.ac.iitk.cse.mti.aritra.amrs.vendor.hdf5_getters;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -69,20 +70,6 @@ public class DataLoader {
 		for (int i = 0; i < threads; i++) {
 			new LoadUser(users, i, threads).start();
 		}
-		
-//		int count = 0;
-//		try {
-//			BufferedReader br = new BufferedReader(new FileReader(usersFile));
-//			String line = null;
-//			while ((line = br.readLine()) != null) {
-//				String user = line.replaceAll("\r\n", "");
-//				fetchUserHistory(user);
-//				count++;
-//			}
-//			br.close();
-//		} catch (IOException ioe) {
-//		}
-//		System.out.println("Users Added: " + count);
 	}
 
 	private void loadTags() {

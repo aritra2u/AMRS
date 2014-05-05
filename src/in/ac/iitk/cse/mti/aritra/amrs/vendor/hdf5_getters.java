@@ -1,4 +1,4 @@
-package in.ac.iitk.cse.mti.aritra.amrs;
+package in.ac.iitk.cse.mti.aritra.amrs.vendor;
 
 /*
  Thierry Bertin-Mahieux (2010) Columbia University
@@ -64,7 +64,7 @@ public class hdf5_getters {
 	}
 
 	/**
-	 * Closes the HDF5 file. Function usefull only because of the try/catch
+	 * Closes the HDF5 file. Function useful only because of the try/catch
 	 */
 	public static void hdf5_close(H5File h5) {
 		try {
