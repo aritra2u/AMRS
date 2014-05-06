@@ -1,18 +1,24 @@
 package in.ac.iitk.cse.mti.aritra.amrs;
 
+import in.ac.iitk.cse.mti.aritra.amrs.utils.DataLoader;
+import in.ac.iitk.cse.mti.aritra.amrs.utils.MillionSongDataset;
+
 import java.io.File;
 
 public class Home {
 	private final DataLoader DL;
+	private final MillionSongDataset msd;
 
 	public Home() {
 		String baseLocation = File.separatorChar + "home" + File.separatorChar
 				+ "aritra" + File.separatorChar + "Development"
 				+ File.separatorChar + "data" + File.separatorChar + "amrs";
-		DL = new DataLoader(baseLocation);
+		msd = new MillionSongDataset(baseLocation + File.separatorChar + "MillionSong", "localhost");
+		DL = new DataLoader(baseLocation, msd);
 	}
 	
 	private void start(File usersFile) {
+		System.out.println(msd.getTrackFeatures("TRHWMGX128F932A8A2"));
 		DL.loadData(usersFile);
 	}
 	

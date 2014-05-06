@@ -1,10 +1,9 @@
 /**
  * 
  */
-package in.ac.iitk.cse.mti.aritra.amrs;
+package in.ac.iitk.cse.mti.aritra.amrs.utils;
 
 import in.ac.iitk.cse.mti.aritra.amrs.datamodels.Trie;
-import in.ac.iitk.cse.mti.aritra.amrs.vendor.hdf5_getters;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -14,8 +13,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 
-import ncsa.hdf.object.h5.H5File;
 import de.umass.lastfm.PaginatedResult;
 import de.umass.lastfm.Tag;
 import de.umass.lastfm.Track;
@@ -35,9 +34,11 @@ public class DataLoader {
 	private final String userHistoryLocation;
 	private final String userTagsLocation;
 	private final ArrayList<String> tags;
+	private final MillionSongDataset msdCache;
 
-	public DataLoader(String dataLocation) {
+	public DataLoader(String dataLocation, MillionSongDataset msdCache) {
 		msd = new Trie();
+		this.msdCache = msdCache;
 		tags = new ArrayList<String>();
 		apiKey = "d6a137eb39bc7831b26610a9d8885253";
 		historyLimit = 200;
@@ -126,20 +127,23 @@ public class DataLoader {
 			
 			PaginatedResult<Track> tracks = User.getRecentTracks(user, 0, historyLimit, apiKey);
 			for (Track track : tracks) {
-				String track_id = getMSDTrackId(track.getName());
-				if (track_id != null) {
-					H5File h5 = hdf5_getters.hdf5_open_readonly(getHDF5Path(track_id));
+				String trackId = getMSDTrackId(track.getName());
+				if (trackId != null) {
+//					H5File h5 = hdf5_getters.hdf5_open_readonly(msdCache.getHDF5Path(trackId));
+					Map<String, Object> features = msdCache.getTrackFeatures(trackId);
 					try {
-						String title = hdf5_getters.get_title(h5);
-						String artist = hdf5_getters.get_artist_name(h5);
-						Collection<Tag> trackTags = Track.getTopTags(artist, title, apiKey);
+//						String title = hdf5_getters.get_title(h5);
+//						String artist = hdf5_getters.get_artist_name(h5);
+						String title = (String) features.get("title");
+						String artistName = (String) features.get("artist_name");
+						Collection<Tag> trackTags = Track.getTopTags(artistName, title, apiKey);
 						pooltags(userTags, trackTags);
-						bw_hist.write(track.getPlayedWhen().getTime() + ":" + track_id + "\n");
+						bw_hist.write(track.getPlayedWhen().getTime() + ":" + trackId + "\n");
 						count++;
 					} catch (Exception e) {
-						System.err.println("Failed: " + track_id);
+						System.err.println("Failed: " + trackId);
 					}
-					hdf5_getters.hdf5_close(h5);
+//					hdf5_getters.hdf5_close(h5);
 				} else {
 					System.err.println("Track not found: " + track.getName());
 				}
@@ -170,14 +174,14 @@ public class DataLoader {
 		}
 	}
 
-	private String getHDF5Path(String trackId) {
-		return msdHome + File.separatorChar + "data" + File.separatorChar + trackId.charAt(2)
-				+ File.separatorChar + trackId.charAt(3) + File.separatorChar
-				+ trackId.charAt(4) + File.separatorChar + trackId + ".h5";
-	}
+//	private String getHDF5Path(String trackId) {
+//		return msdHome + File.separatorChar + "data" + File.separatorChar + trackId.charAt(2)
+//				+ File.separatorChar + trackId.charAt(3) + File.separatorChar
+//				+ trackId.charAt(4) + File.separatorChar + trackId + ".h5";
+//	}
 
-	private String getMSDTrackId(String track) {
-		String title = track.toLowerCase().replaceAll("[^a-z0-9]+", "");
+	private String getMSDTrackId(String rawTitle) {
+		String title = rawTitle.toLowerCase().replaceAll("[^a-z0-9]+", "");
 		char[] charArray = title.toCharArray();
 		ArrayList<Character> charList = new ArrayList<Character>();
 		for (char letter : charArray) {

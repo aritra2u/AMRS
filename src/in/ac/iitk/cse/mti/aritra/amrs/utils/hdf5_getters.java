@@ -1,4 +1,4 @@
-package in.ac.iitk.cse.mti.aritra.amrs.vendor;
+package in.ac.iitk.cse.mti.aritra.amrs.utils;
 
 /*
  Thierry Bertin-Mahieux (2010) Columbia University
