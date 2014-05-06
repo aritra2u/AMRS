@@ -71,13 +71,29 @@ public class MillionSongDataset {
 		H5File track = hdf5_getters.hdf5_open_readonly(getHDF5Path(trackId));
 		try {
 			Map<String, Object> features = new HashMap<String, Object>();
-			features.put("artist_id", hdf5_getters.get_artist_id(track));
-			features.put("artist_name", hdf5_getters.get_artist_name(track));
-			features.put("energy", hdf5_getters.get_energy(track));
-			features.put("loudness", hdf5_getters.get_loudness(track));
-			features.put("song_hotttnesss", hdf5_getters.get_song_hotttnesss(track));
-			features.put("tempo", hdf5_getters.get_tempo(track));
-			features.put("title", hdf5_getters.get_title(track));
+			
+			String artistId = hdf5_getters.get_artist_id(track);
+			features.put("artist_id", artistId);
+			
+			String artistName = hdf5_getters.get_artist_name(track);
+			features.put("artist_name", artistName);
+			
+			double energy = hdf5_getters.get_energy(track);
+			features.put("energy", energy);
+			
+			double loudness = hdf5_getters.get_loudness(track);
+			features.put("loudness", loudness);
+			
+			double songHotness = hdf5_getters.get_song_hotttnesss(track);
+			songHotness = Double.isNaN(songHotness) ? 0.0 : songHotness;
+			features.put("song_hotttnesss", songHotness);
+			
+			double tempo = hdf5_getters.get_tempo(track);
+			features.put("tempo", tempo);
+			
+			String title = hdf5_getters.get_title(track);
+			features.put("title", title);
+			
 			json = gson.toJson(features);
 		} catch (Exception e) {
 			e.printStackTrace();
