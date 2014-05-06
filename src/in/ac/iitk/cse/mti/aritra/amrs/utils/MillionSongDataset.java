@@ -19,7 +19,7 @@ public class MillionSongDataset {
 	private final String msdHome;
 	private final Jedis dbServer;
 	private final Gson gson;
-	private static int threadCount = 800;
+	private static int threadCount = 16;
 	
 	public MillionSongDataset(String msdHome, String dbServerIP) {
 		this.msdHome = msdHome;
@@ -102,7 +102,7 @@ public class MillionSongDataset {
 		return json;
 	}
 	
-	public String getHDF5Path(String trackId) {
+	private String getHDF5Path(String trackId) {
 		return msdHome + File.separatorChar + "data" + File.separatorChar
 				+ trackId.charAt(2) + File.separatorChar + trackId.charAt(3)
 				+ File.separatorChar + trackId.charAt(4) + File.separatorChar

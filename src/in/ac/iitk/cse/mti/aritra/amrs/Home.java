@@ -13,7 +13,7 @@ public class Home {
 		String baseLocation = File.separatorChar + "home" + File.separatorChar
 				+ "aritra" + File.separatorChar + "Development"
 				+ File.separatorChar + "data" + File.separatorChar + "amrs";
-		msd = new MillionSongDataset(baseLocation + File.separatorChar + "MillionSong", "localhost");
+		msd = new MillionSongDataset(baseLocation + File.separatorChar + "MillionSong", "172.27.2.7");
 		DL = new DataLoader(baseLocation, msd);
 	}
 	

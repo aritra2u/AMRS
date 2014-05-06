@@ -129,11 +129,8 @@ public class DataLoader {
 			for (Track track : tracks) {
 				String trackId = getMSDTrackId(track.getName());
 				if (trackId != null) {
-//					H5File h5 = hdf5_getters.hdf5_open_readonly(msdCache.getHDF5Path(trackId));
 					Map<String, Object> features = msdCache.getTrackFeatures(trackId);
 					try {
-//						String title = hdf5_getters.get_title(h5);
-//						String artist = hdf5_getters.get_artist_name(h5);
 						String title = (String) features.get("title");
 						String artistName = (String) features.get("artist_name");
 						Collection<Tag> trackTags = Track.getTopTags(artistName, title, apiKey);
@@ -143,7 +140,6 @@ public class DataLoader {
 					} catch (Exception e) {
 						System.err.println("Failed: " + trackId);
 					}
-//					hdf5_getters.hdf5_close(h5);
 				} else {
 					System.err.println("Track not found: " + track.getName());
 				}
@@ -173,12 +169,6 @@ public class DataLoader {
 			}
 		}
 	}
-
-//	private String getHDF5Path(String trackId) {
-//		return msdHome + File.separatorChar + "data" + File.separatorChar + trackId.charAt(2)
-//				+ File.separatorChar + trackId.charAt(3) + File.separatorChar
-//				+ trackId.charAt(4) + File.separatorChar + trackId + ".h5";
-//	}
 
 	private String getMSDTrackId(String rawTitle) {
 		String title = rawTitle.toLowerCase().replaceAll("[^a-z0-9]+", "");
