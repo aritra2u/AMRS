@@ -26,14 +26,18 @@ public class MillionSongDataset {
 	public MillionSongDataset(String msdHome, String dbServerIP) {
 		this.msdHome = msdHome;
 		this.dbServer = new Jedis(dbServerIP);
+		this.dbServer.connect();
 		this.gson = new Gson();
 		
 		trackInformations = loadTracks();
-		storeTracks();
+//		storeTracks();
 	}
 	
 	public Map<String, Object> getTrackFeatures(String trackId) {
 		String json = dbServer.get(trackId);
+		if (json == null) {
+			json = saveTrackFeatures(trackId);
+		}
 		Type mapType = new TypeToken<Map<String, Object>>(){}.getType();
 		return gson.fromJson(json, mapType);
 	}
@@ -83,8 +87,7 @@ public class MillionSongDataset {
 		}
 	}
 	
-	private String fetchTrackFeatures(String trackId) {
-		String json = "";
+	private String saveTrackFeatures(String trackId) {
 		H5File track = hdf5_getters.hdf5_open_readonly(getHDF5Path(trackId));
 		try {
 			Map<String, Object> features = new HashMap<String, Object>();
@@ -111,12 +114,13 @@ public class MillionSongDataset {
 			String title = hdf5_getters.get_title(track);
 			features.put("title", title);
 			
-			json = gson.toJson(features);
+			dbServer.set(trackId, gson.toJson(features));
 		} catch (Exception e) {
+			System.err.println("Failed to obtain track information: " + trackId);
 			e.printStackTrace();
 		}
 		hdf5_getters.hdf5_close(track);
-		return json;
+		return dbServer.get(trackId);
 	}
 	
 	private String getHDF5Path(String trackId) {
@@ -141,8 +145,7 @@ public class MillionSongDataset {
 				if (i % threadCount == index) {
 					Map<String, String> trackInformation = trackInformations.get(i);
 					String trackId = trackInformation.get("track_id");
-					String trackFeatures = fetchTrackFeatures(trackId);
-					dbServer.set(trackId, trackFeatures);
+					saveTrackFeatures(trackId);
 				}
 			}
 		}

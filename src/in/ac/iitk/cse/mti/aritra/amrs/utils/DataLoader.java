@@ -34,7 +34,7 @@ public class DataLoader {
 	private final String userTagsLocation;
 	private final ArrayList<String> tags;
 	private final MillionSongDataset msdCache;
-	private final static int threadCount = 16;
+	private final static int threadCount = 1;
 
 	public DataLoader(String dataLocation, MillionSongDataset msdCache) {
 		msd = new Trie();
@@ -84,6 +84,8 @@ public class DataLoader {
 			}
 			br.close();
 		} catch (IOException ioe) {
+			System.err.println("Loading Tags failed");
+			ioe.printStackTrace();
 		}
 	}
 
@@ -121,16 +123,17 @@ public class DataLoader {
 				String trackId = getMSDTrackId(track.getName());
 				if (trackId != null) {
 					Map<String, Object> features = msdCache.getTrackFeatures(trackId);
+					String title = (String) features.get("title");
+					String artistName = (String) features.get("artist_name");
 					try {
-						String title = (String) features.get("title");
-						String artistName = (String) features.get("artist_name");
-						Collection<Tag> trackTags = Track.getTopTags(artistName, title, apiKey);
-						pooltags(userTags, trackTags);
 						bw_hist.write(track.getPlayedWhen().getTime() + ":" + trackId + "\n");
 						count++;
 					} catch (Exception e) {
 						System.err.println("Failed: " + trackId);
+						e.printStackTrace();
 					}
+					Collection<Tag> trackTags = Track.getTopTags(artistName, title, apiKey);
+					pooltags(userTags, trackTags);
 				} else {
 					System.err.println("Track not found: " + track.getName());
 				}
@@ -145,8 +148,9 @@ public class DataLoader {
 			bw_tags.close();
 		} catch (Exception e) {
 			System.err.println("Failed to write history: " + user);
+			e.printStackTrace();
 		}
-		System.out.println("Tracks analysed: " + count + "(" + user + ")");
+		System.out.println("Tracks analysed: " + count + " (" + user + ")");
 	}
 	
 	private void pooltags(int[] userTags, Collection<Tag> trackTags) {
