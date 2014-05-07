@@ -66,12 +66,12 @@ public class MillionSongDataset {
 		return trackInformations;
 	}
 	
-	public ArrayList<Map<String, String>> getTracks() {
+	public ArrayList<Map<String, String>> getTrackInformations() {
 		return trackInformations;
 	}
 	
 	private void storeTracks() {
-		ArrayList<Map<String, String>> trackInformations = getTracks();
+		ArrayList<Map<String, String>> trackInformations = getTrackInformations();
 		ArrayList<Thread> threads = new ArrayList<Thread>();
 		for (int i = 0; i < threadCount; i++) {
 			Thread t = new LoadTracks(trackInformations, i);

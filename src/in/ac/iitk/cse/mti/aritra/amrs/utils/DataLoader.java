@@ -64,6 +64,8 @@ public class DataLoader {
 			}
 			br.close();
 		} catch (IOException ioe) {
+			System.err.println("Failed loading user list");
+			ioe.printStackTrace();
 		}
 		
 		ArrayList<Thread> threads = new ArrayList<Thread>();
@@ -90,7 +92,7 @@ public class DataLoader {
 	}
 
 	private void loadTracks() {
-		ArrayList<Map<String, String>> trackInformations = msdCache.getTracks();
+		ArrayList<Map<String, String>> trackInformations = msdCache.getTrackInformations();
 		for (Map<String, String> trackInformation : trackInformations) {
 			String title = trackInformation.get("title").toLowerCase().replaceAll("[^a-z0-9]+", "");
 			String trackId = trackInformation.get("track_id");
@@ -184,6 +186,7 @@ public class DataLoader {
 			this.index = index;
 		}
 		
+		@Override
 		public void run() {
 			for (int i = 0; i < users.size(); i++) {
 				if (i % threadCount == index) {
