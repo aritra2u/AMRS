@@ -29,12 +29,12 @@ public class DataLoader {
 
 	private final String apiKey;
 	private final int historyLimit;
-	private final String msdHome;
 	private final String dataLocation;
 	private final String userHistoryLocation;
 	private final String userTagsLocation;
 	private final ArrayList<String> tags;
 	private final MillionSongDataset msdCache;
+	private final static int threadCount = 16;
 
 	public DataLoader(String dataLocation, MillionSongDataset msdCache) {
 		msd = new Trie();
@@ -43,7 +43,6 @@ public class DataLoader {
 		apiKey = "d6a137eb39bc7831b26610a9d8885253";
 		historyLimit = 200;
 		this.dataLocation = dataLocation;
-		msdHome = dataLocation + File.separatorChar + "MillionSong";
 		userHistoryLocation = dataLocation + File.separatorChar + "userhistory";
 		userTagsLocation = dataLocation + File.separatorChar + "usertags";
 	}
@@ -67,9 +66,11 @@ public class DataLoader {
 		} catch (IOException ioe) {
 		}
 		
-		int threads = 150;
-		for (int i = 0; i < threads; i++) {
-			new LoadUser(users, i, threads).start();
+		ArrayList<Thread> threads = new ArrayList<Thread>();
+		for (int i = 0; i < threadCount; i++) {
+			Thread t = new LoadUser(users, i);
+			threads.add(t);
+			t.start();
 		}
 	}
 
@@ -87,21 +88,11 @@ public class DataLoader {
 	}
 
 	private void loadTracks() {
-		String tracks_file_location = msdHome + File.separatorChar + "AdditionalFiles" + File.separatorChar + "unique_tracks.txt";
-		try {
-			BufferedReader br = new BufferedReader(new FileReader(new File(tracks_file_location)));
-			String line = null;
-			while ((line = br.readLine()) != null) {
-				String[] data = line.split("<SEP>");
-				if (data.length == 4) {
-					String title = data[3].toLowerCase().replaceAll(
-							"[^a-z0-9]+", "");
-					String track_id = data[0];
-					msd.insert(title, track_id);
-				}
-			}
-			br.close();
-		} catch (IOException ioe) {
+		ArrayList<Map<String, String>> trackInformations = msdCache.getTracks();
+		for (Map<String, String> trackInformation : trackInformations) {
+			String title = trackInformation.get("title").toLowerCase().replaceAll("[^a-z0-9]+", "");
+			String trackId = trackInformation.get("track_id");
+			msd.insert(title, trackId);
 		}
 		System.out.println("Total Nodes: " + msd.getNodeCount());
 		System.out.println("Total Words: " + msd.getWordCount());
@@ -182,18 +173,16 @@ public class DataLoader {
 	
 	class LoadUser extends Thread {
 		private final int index;
-		private final int threads;
 		private final ArrayList<String> users;
 		
-		public LoadUser(ArrayList<String> users, int index, int threads) {
+		public LoadUser(ArrayList<String> users, int index) {
 			this.users = users;
 			this.index = index;
-			this.threads = threads;
 		}
 		
 		public void run() {
 			for (int i = 0; i < users.size(); i++) {
-				if (i % threads == index) {
+				if (i % threadCount == index) {
 					String user = users.get(i);
 					fetchUserHistory(user);
 				}

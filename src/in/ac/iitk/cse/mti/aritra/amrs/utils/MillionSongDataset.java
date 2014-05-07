@@ -19,14 +19,17 @@ public class MillionSongDataset {
 	private final String msdHome;
 	private final Jedis dbServer;
 	private final Gson gson;
-	private static int threadCount = 16;
+	private final static int threadCount = 16;
+	
+	private final ArrayList<Map<String, String>> trackInformations;
 	
 	public MillionSongDataset(String msdHome, String dbServerIP) {
 		this.msdHome = msdHome;
 		this.dbServer = new Jedis(dbServerIP);
 		this.gson = new Gson();
 		
-		loadTracks();
+		trackInformations = loadTracks();
+		storeTracks();
 	}
 	
 	public Map<String, Object> getTrackFeatures(String trackId) {
@@ -35,25 +38,39 @@ public class MillionSongDataset {
 		return gson.fromJson(json, mapType);
 	}
 	
-	private void loadTracks() {
+	private ArrayList<Map<String, String>> loadTracks() {
 		String tracksFileURL = msdHome + File.separatorChar + "AdditionalFiles" + File.separatorChar + "unique_tracks.txt";
-		ArrayList<String> trackIds = new ArrayList<String>();
+		ArrayList<Map<String, String>> trackInformations = new ArrayList<Map<String, String>>();
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(new File(tracksFileURL)));
 			String line = null;
 			while ((line = br.readLine()) != null) {
 				String[] data = line.split("<SEP>");
 				if (data.length == 4) {
-					String trackId = data[0];
-					trackIds.add(trackId);
+					Map<String, String> trackInformation = new HashMap<String, String>();
+					trackInformation.put("track_id", data[0]);
+					trackInformation.put("song_id", data[1]);
+					trackInformation.put("artist_name", data[2]);
+					trackInformation.put("title", data[3]);
+					trackInformations.add(trackInformation);
 				}
 			}
 			br.close();
 		} catch (IOException ioe) {
+			System.err.println("Error in loading track informations");
 		}
+		return trackInformations;
+	}
+	
+	public ArrayList<Map<String, String>> getTracks() {
+		return trackInformations;
+	}
+	
+	private void storeTracks() {
+		ArrayList<Map<String, String>> trackInformations = getTracks();
 		ArrayList<Thread> threads = new ArrayList<Thread>();
 		for (int i = 0; i < threadCount; i++) {
-			Thread t = new LoadTracks(trackIds, i);
+			Thread t = new LoadTracks(trackInformations, i);
 			threads.add(t);
 			t.start();
 		}
@@ -111,18 +128,19 @@ public class MillionSongDataset {
 	
 	private class LoadTracks extends Thread {
 		private final int index;
-		private final ArrayList<String> trackIds;
+		private final ArrayList<Map<String, String>> trackInformations;
 
-		public LoadTracks(ArrayList<String> trackIds, int index) {
-			this.trackIds = trackIds;
+		public LoadTracks(ArrayList<Map<String, String>> trackInformations, int index) {
+			this.trackInformations = trackInformations;
 			this.index = index;
 		}
 
 		@Override
 		public void run() {
-			for (int i = 0; i < trackIds.size(); i++) {
+			for (int i = 0; i < trackInformations.size(); i++) {
 				if (i % threadCount == index) {
-					String trackId = trackIds.get(i);
+					Map<String, String> trackInformation = trackInformations.get(i);
+					String trackId = trackInformation.get("track_id");
 					String trackFeatures = fetchTrackFeatures(trackId);
 					dbServer.set(trackId, trackFeatures);
 				}
