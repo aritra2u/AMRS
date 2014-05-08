@@ -17,77 +17,27 @@ import com.google.gson.reflect.TypeToken;
 
 public class MillionSongDataset {
 	private final String msdHome;
-	private final Jedis dbServer;
 	private final Gson gson;
-	private final static int threadCount = 16;
 	
 	private final ArrayList<Map<String, String>> trackInformations;
 	
-	public MillionSongDataset(String msdHome, String dbServerIP) {
+	public MillionSongDataset(String msdHome) {
 		this.msdHome = msdHome;
-		this.dbServer = new Jedis(dbServerIP);
-		this.dbServer.connect();
 		this.gson = new Gson();
 		
-		trackInformations = loadTracks();
-//		storeTracks();
+		trackInformations = new ArrayList<Map<String, String>>();
 	}
 	
-	public Map<String, Object> getTrackFeatures(String trackId) {
+	public Map<String, Object> getTrackFeatures(String trackId, Jedis dbServer) {
 		String json = dbServer.get(trackId);
 		if (json == null) {
-			json = saveTrackFeatures(trackId);
+			json = saveTrackFeatures(trackId, dbServer);
 		}
 		Type mapType = new TypeToken<Map<String, Object>>(){}.getType();
 		return gson.fromJson(json, mapType);
 	}
 	
-	private ArrayList<Map<String, String>> loadTracks() {
-		String tracksFileURL = msdHome + File.separatorChar + "AdditionalFiles" + File.separatorChar + "unique_tracks.txt";
-		ArrayList<Map<String, String>> trackInformations = new ArrayList<Map<String, String>>();
-		try {
-			BufferedReader br = new BufferedReader(new FileReader(new File(tracksFileURL)));
-			String line = null;
-			while ((line = br.readLine()) != null) {
-				String[] data = line.split("<SEP>");
-				if (data.length == 4) {
-					Map<String, String> trackInformation = new HashMap<String, String>();
-					trackInformation.put("track_id", data[0]);
-					trackInformation.put("song_id", data[1]);
-					trackInformation.put("artist_name", data[2]);
-					trackInformation.put("title", data[3]);
-					trackInformations.add(trackInformation);
-				}
-			}
-			br.close();
-		} catch (IOException ioe) {
-			System.err.println("Error in loading track informations");
-		}
-		return trackInformations;
-	}
-	
-	public ArrayList<Map<String, String>> getTrackInformations() {
-		return trackInformations;
-	}
-	
-	private void storeTracks() {
-		ArrayList<Map<String, String>> trackInformations = getTrackInformations();
-		ArrayList<Thread> threads = new ArrayList<Thread>();
-		for (int i = 0; i < threadCount; i++) {
-			Thread t = new LoadTracks(trackInformations, i);
-			threads.add(t);
-			t.start();
-		}
-		for (Thread t : threads) {
-			try {
-				t.join();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	
-	private String saveTrackFeatures(String trackId) {
+	private String saveTrackFeatures(String trackId, Jedis dbServer) {
 		H5File track = hdf5_getters.hdf5_open_readonly(getHDF5Path(trackId));
 		try {
 			Map<String, Object> features = new HashMap<String, Object>();
@@ -130,24 +80,33 @@ public class MillionSongDataset {
 				+ trackId + ".h5";
 	}
 	
-	private class LoadTracks extends Thread {
-		private final int index;
-		private final ArrayList<Map<String, String>> trackInformations;
-
-		public LoadTracks(ArrayList<Map<String, String>> trackInformations, int index) {
-			this.trackInformations = trackInformations;
-			this.index = index;
-		}
-
-		@Override
-		public void run() {
-			for (int i = 0; i < trackInformations.size(); i++) {
-				if (i % threadCount == index) {
-					Map<String, String> trackInformation = trackInformations.get(i);
-					String trackId = trackInformation.get("track_id");
-					saveTrackFeatures(trackId);
+	private ArrayList<Map<String, String>> loadTracks() {
+		String tracksFileURL = msdHome + File.separatorChar + "AdditionalFiles" + File.separatorChar + "unique_tracks.txt";
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(new File(tracksFileURL)));
+			String line = null;
+			while ((line = br.readLine()) != null) {
+				String[] data = line.split("<SEP>");
+				if (data.length == 4) {
+					Map<String, String> trackInformation = new HashMap<String, String>();
+					trackInformation.put("track_id", data[0]);
+					trackInformation.put("song_id", data[1]);
+					trackInformation.put("artist_name", data[2]);
+					trackInformation.put("title", data[3]);
+					trackInformations.add(trackInformation);
 				}
 			}
+			br.close();
+		} catch (IOException ioe) {
+			System.err.println("Error in loading track informations");
 		}
+		return trackInformations;
+	}
+	
+	public ArrayList<Map<String, String>> getTrackInformations() {
+		if (trackInformations.size() == 0) {
+			loadTracks();
+		}
+		return trackInformations;
 	}
 }

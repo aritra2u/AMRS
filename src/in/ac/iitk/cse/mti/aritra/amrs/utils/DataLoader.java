@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
+import redis.clients.jedis.Jedis;
 import de.umass.lastfm.PaginatedResult;
 import de.umass.lastfm.Tag;
 import de.umass.lastfm.Track;
@@ -35,6 +36,7 @@ public class DataLoader {
 	private final ArrayList<String> tags;
 	private final MillionSongDataset msdCache;
 	private final static int threadCount = 1;
+	private final Jedis[] dbServers;
 
 	public DataLoader(String dataLocation, MillionSongDataset msdCache) {
 		msd = new Trie();
@@ -45,6 +47,13 @@ public class DataLoader {
 		this.dataLocation = dataLocation;
 		userHistoryLocation = dataLocation + File.separatorChar + "userhistory";
 		userTagsLocation = dataLocation + File.separatorChar + "usertags";
+		
+		dbServers = new Jedis[threadCount];
+		for (int i = 0; i < threadCount; i++) {
+			Jedis dbServer = new Jedis("127.0.0.1");
+			dbServer.connect();
+			dbServers[i] = dbServer;
+		}
 	}
 	
 	public void loadData(File usersFile) {
@@ -102,7 +111,7 @@ public class DataLoader {
 		System.out.println("Total Words: " + msd.getWordCount());
 	}
 
-	private void fetchUserHistory(String user) {
+	private void fetchUserHistory(String user, int threadId) {
 		System.out.println("Fetching user history: " + user);
 		int count = 0;
 		int[] userTags = new int[tags.size()];
@@ -124,7 +133,7 @@ public class DataLoader {
 			for (Track track : tracks) {
 				String trackId = getMSDTrackId(track.getName());
 				if (trackId != null) {
-					Map<String, Object> features = msdCache.getTrackFeatures(trackId);
+					Map<String, Object> features = msdCache.getTrackFeatures(trackId, dbServers[threadId]);
 					String title = (String) features.get("title");
 					String artistName = (String) features.get("artist_name");
 					try {
@@ -191,7 +200,7 @@ public class DataLoader {
 			for (int i = 0; i < users.size(); i++) {
 				if (i % threadCount == index) {
 					String user = users.get(i);
-					fetchUserHistory(user);
+					fetchUserHistory(user, index);
 				}
 			}
 		}
