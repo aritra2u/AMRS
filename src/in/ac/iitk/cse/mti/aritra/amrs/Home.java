@@ -22,14 +22,14 @@ public class Home {
 	}
 	
 	public static void main(String... args) {
+		File usersFile;
 		if (args.length > 0) {
-			File usersFile = new File(args[0]);
-			
-			Home obj = new Home();
-			obj.start(usersFile);
+			usersFile = new File(args[0]);
 		} else {
-			throw new IllegalArgumentException();
+			usersFile = new File("/home/aritra/Development/data/users");
 		}
+		Home obj = new Home();
+		obj.start(usersFile);
 	}
 
 }

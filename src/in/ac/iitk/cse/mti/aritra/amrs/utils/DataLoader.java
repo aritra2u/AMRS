@@ -115,56 +115,73 @@ public class DataLoader {
 		System.out.println("Fetching user history: " + user);
 		int count = 0;
 		int[] userTags = new int[tags.size()];
-		File historyFile = new File(userHistoryLocation + File.separatorChar + user);
-		File tagsFile = new File(userTagsLocation + File.separatorChar + user);
+		
+		BufferedWriter bw_hist = null;
+		BufferedWriter bw_tags = null;
 		
 		try {
+			File historyFile = new File(userHistoryLocation + File.separatorChar + user);
 			if (!historyFile.exists()) {
 				historyFile.createNewFile();
 			}
+			bw_hist = new BufferedWriter(new FileWriter(historyFile.getAbsoluteFile()));
+			
+			File tagsFile = new File(userTagsLocation + File.separatorChar + user);
 			if (!tagsFile.exists()) {
 				tagsFile.createNewFile();
 			}
+			bw_tags = new BufferedWriter(new FileWriter(tagsFile.getAbsoluteFile()));
 			
-			BufferedWriter bw_hist = new BufferedWriter(new FileWriter(historyFile.getAbsoluteFile()));
-			BufferedWriter bw_tags = new BufferedWriter(new FileWriter(tagsFile.getAbsoluteFile()));
-			
-			PaginatedResult<Track> tracks = User.getRecentTracks(user, 0, historyLimit, apiKey);
-			for (Track track : tracks) {
-				String trackId = getMSDTrackId(track.getName());
-				if (trackId != null) {
-					Map<String, Object> features = msdCache.getTrackFeatures(trackId, dbServers[threadId]);
-					String title = (String) features.get("title");
-					String artistName = (String) features.get("artist_name");
-					try {
-						bw_hist.write(track.getPlayedWhen().getTime() + ":" + trackId + "\n");
-						count++;
-					} catch (Exception e) {
-						System.err.println("Failed: " + trackId);
-						e.printStackTrace();
+			try {
+				PaginatedResult<Track> tracks = User.getRecentTracks(user, 0, historyLimit, apiKey);
+				for (Track track : tracks) {
+					String trackId = getMSDTrackId(track.getName());
+					if (trackId != null) {
+						Map<String, Object> features = msdCache.getTrackFeatures(trackId, dbServers[threadId]);
+						String title = (String) features.get("title");
+						String artistName = (String) features.get("artist_name");
+						try {
+							bw_hist.write(track.getPlayedWhen().getTime() + ":" + trackId + "\n");
+							count++;
+						} catch (Exception e) {
+							System.err.println("Failed to write track: " + trackId);
+							e.printStackTrace();
+						}
+						try {
+							Collection<Tag> trackTags = Track.getTopTags(artistName, title, apiKey);
+							poolTags(userTags, trackTags);
+						} catch (Exception e) {
+							System.err.println("Failed to fetch tags for title: " + title + ", artist: " + artistName);
+							e.printStackTrace();
+						}
+					} else {
+						System.err.println("Track not found: " + track.getName());
 					}
-					Collection<Tag> trackTags = Track.getTopTags(artistName, title, apiKey);
-					pooltags(userTags, trackTags);
-				} else {
-					System.err.println("Track not found: " + track.getName());
 				}
+				userTags[89] -= userTags[59];
+				for (int tagCount : userTags) {
+					bw_tags.write(tagCount + "\n");
+				}
+			} catch (Exception e) {
+				System.err.println("Failed to fetch tracks for user: " + user);
+				e.printStackTrace();
 			}
-			
-			userTags[89] -= userTags[59];
-			for (int tagCount : userTags) {
-				bw_tags.write(tagCount + "\n");
+		} catch (IOException ioe) {
+			System.err.println("Files cannot be created for user: " + user);
+			ioe.printStackTrace();
+		} finally {
+			try {
+				bw_hist.close();
+				bw_tags.close();
+			} catch (Exception e) {
+				System.err.println("Failed to close file for user: " + user);
+				e.printStackTrace();
 			}
-			
-			bw_hist.close();
-			bw_tags.close();
-		} catch (Exception e) {
-			System.err.println("Failed to write history: " + user);
-			e.printStackTrace();
 		}
 		System.out.println("Tracks analysed: " + count + " (" + user + ")");
 	}
 	
-	private void pooltags(int[] userTags, Collection<Tag> trackTags) {
+	private void poolTags(int[] userTags, Collection<Tag> trackTags) {
 		for (String oTag : tags) {
 			for (Tag trackTag : trackTags) {
 				String tTag = trackTag.getName().toLowerCase().replaceAll("\r\n", "");
